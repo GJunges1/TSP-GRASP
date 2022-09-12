@@ -1,1 +1,4 @@
 .vscode
+greedy
+*.old
+tsp.output

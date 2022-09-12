@@ -85,10 +85,9 @@ void greedySearch(float **tsp)
 
 	// Exibindo a rota encontrada
 	printf("GREEDY ROUTE:\n");
-	for(i=0;i<city_num;i++){
-		printf("%d\t",route[i]);
-		if((i+1)%10==0)
-			printf("\n");
+	for(i=0;i<city_num;i++)
+	{
+		printf("%d ",route[i]);
 	}
 	printf("\n");
 }
@@ -161,7 +160,7 @@ int main()
 	float elapsed_time;
 	elapsed_time = stopwatch(greedySearch,tsp);
 
-	printf("\nELAPSED TIME (s): %e\n",elapsed_time);
+	printf("ELAPSED TIME (s): %e\n",elapsed_time);
 
 	// Liberando a memória utilizada
     for(i=0;i<city_num;i++)
