@@ -1,4 +1,7 @@
 .vscode
 greedy
 *.old
-tsp.output
+greedy0*.c
+tsp_output*
+stocastic
+local
