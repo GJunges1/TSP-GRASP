@@ -15,6 +15,26 @@
 
 int city_num=0;
 
+
+int* listNonVisitedIdxs(int *tsp_idxs_i,int *visitedIdxs,int n_unvisited)
+{
+	int l=0;
+	int n = n_unvisited;
+	int *nonVisited = malloc(n*sizeof(int));
+	int i,j,k;
+	j=0;
+	for(i=0;i<city_num;i++)
+	{
+		k = tsp_idxs_i[i];
+		if(!visitedIdxs[k])
+		{
+			nonVisited[j++]=k;
+		}
+	}
+	return nonVisited;
+}
+
+
 // Função para o cálculo da distância euclidiana 2D
 double euc_2d_distance(double x1, double y1, double x2, double y2)
 {
@@ -32,7 +52,7 @@ void printRoute(int* route, char* legend)
 	// Exibindo a rota encontrada
 	for(i=0;i<(city_num+1);i++)
 	{
-		if(i%10==0) printf("\n");
+		// if(i%10==0) printf("\n");
 		printf("%d ",route[i]);
 	}
 	printf("\n");
@@ -42,87 +62,73 @@ void printRoute(int* route, char* legend)
 // Merges two subarrays of arr[].
 // First subarray is arr[l..m]
 // Second subarray is arr[m+1..r]
-void merge(int* arr1, int* arr2, int l, int m, int r)
+void merge(float arr[], int idxs[], int l, int m, int r)
 {
-	int i, j, k;
-	int n1 = m - l + 1;
-	int n2 = r - m;
-
-	/* create temp arrays */
-	int* L1=malloc(sizeof(int)*n1);
-	int* L2=malloc(sizeof(int)*n1);
-	int* R1=malloc(sizeof(int)*n2);
-	int* R2=malloc(sizeof(int)*n2);
-	if(L1==NULL||L2==NULL||R1==NULL||R2==NULL)
-	{
-		printf("ERRO: malloc!\n");
-		return;
-	}
-
-	/* Copy data to temp arrays L1[] and R1[] */
-	for (i = 0; i < n1; i++)
-		L1[i] = arr1[l + i];
-		L2[i] = arr2[l + i];
-	for (j = 0; j < n2; j++)
-		R1[j] = arr1[m + 1 + j];
-		R2[j] = arr2[m + 1 + j];
-
-	/* Merge the temp arrays back into arr[l..r]*/
-	i = 0; // Initial index of first subarray
-	j = 0; // Initial index of second subarray
-	k = l; // Initial index of merged subarray
-	while (i < n1 && j < n2) {
-		if (L1[i] <= R1[j]) {
-			arr1[k] = L1[i];
-			arr2[k] = L2[i];
-			i++;
-		}
-		else {
-			arr1[k] = R1[j];
-			arr2[k] = R2[j];
-			j++;
-		}
-		k++;
-	}
-
-	/* Copy the remaining elements of L1[], if there
-	are any */
-	while (i < n1) {
-		arr1[k] = L1[i];
-		arr2[k] = L2[i];
-		i++;
-		k++;
-	}
-
-	/* Copy the remaining elements of R1[], if there
-	are any */
-	while (j < n2) {
-		arr1[k] = R1[j];
-		arr2[k] = R2[j];
-		j++;
-		k++;
-	}
-	free(L1);
-	free(L2);
-	free(R1);
-	free(R2);
+    int i, j, k;
+    int n1 = m - l + 1;
+    int n2 = r - m;
+ 
+    /* create temp arrays */
+    int *L, *R;
+	L = malloc(n1*sizeof(int));
+	R = malloc(n2*sizeof(int));
+ 
+    /* Copy data to temp arrays L[] and R[] */
+    for (i = 0; i < n1; i++)
+        L[i] = idxs[l + i];
+    for (j = 0; j < n2; j++)
+        R[j] = idxs[m + 1 + j];
+ 
+    /* Merge the temp arrays back into arr[l..r]*/
+    i = 0; // Initial index of first subarray
+    j = 0; // Initial index of second subarray
+    k = l; // Initial index of merged subarray
+    while (i < n1 && j < n2) {
+        if (arr[L[i]] <= arr[R[j]]) {
+            idxs[k] = L[i];
+            i++;
+        }
+        else {
+            idxs[k] = R[j];
+            j++;
+        }
+        k++;
+    }
+ 
+    /* Copy the remaining elements of L[], if there
+    are any */
+    while (i < n1) {
+        idxs[k] = L[i];
+        i++;
+        k++;
+    }
+ 
+    /* Copy the remaining elements of R[], if there
+    are any */
+    while (j < n2) {
+        idxs[k] = R[j];
+        j++;
+        k++;
+    }
+	free(L);
+	free(R);
 }
-
+ 
 /* l is for left index and r is right index of the
 sub-array of arr to be sorted */
-void mergeSort(int* arr1, int* arr2, int l, int r)
+void mergeSort(float arr[],int idxs[], int l, int r)
 {
-	if (l < r) {
-		// Same as (l+r)/2, but avoids overflow for
-		// large l and h
-		int m = l + (r - l) / 2;
-
-		// Sort first and second halves
-		mergeSort(arr1, arr2, l, m);
-		mergeSort(arr1, arr2, m + 1, r);
-
-		merge(arr1, arr2, l, m, r);
-	}
+    if (l < r) {
+        // Same as (l+r)/2, but avoids overflow for
+        // large l and h
+        int m = l + (r - l) / 2;
+ 
+        // Sort first and second halves
+        mergeSort(arr, idxs, l, m);
+        mergeSort(arr, idxs, m + 1, r);
+ 
+        merge(arr, idxs, l, m, r);
+    }
 }
 
 
@@ -140,12 +146,13 @@ void calculateEuc2dDistances(float **coordinates,float **tsp)
 
 // Função que marca o tempo de execução de funções:
 float elapsed_time=0;
-int* stopwatch1arg(int* (*function)(), void* arg){
+int* stopwatch1arg(int* (*function)(), void* arg1, void *arg2){
 	clock_t start, end;
 	int* func_return;
-	arg = (float**) arg;
+	arg1 = (float**) arg1;
+	arg2 = (int**) arg2;
 	start = clock();
-	func_return = (int*)function(arg);
+	func_return = (int*)function(arg1,arg2);
 	end = clock();
 	elapsed_time = (float) (end-start)/CLOCKS_PER_SEC;
 	return func_return;
@@ -202,50 +209,66 @@ int countOnes(int* vetor)
 			return i;
 	return -1;
 }
-int* stocasticSearch(float** tsp)
+
+int grand(int *unvisited,int n_unvisited,float alpha)
 {
-	int* route = malloc(sizeof(int)*(city_num+1));
-	if(route==NULL)
-	{
-		printf("ERRO: malloc com problema!\n");
-		return NULL;
-	}
-	int* city_was_visited = malloc((city_num)*sizeof(int));
-	int* city_indexes = malloc((city_num)*sizeof(int));
-	if(city_indexes==NULL||city_was_visited==NULL)
-	{
-		printf("ERRO: malloc!\n");
-		return NULL;
-	}
-	int offset;
-	int i;
-	float curLength=0;
+	int r = floor((float)n_unvisited*alpha);
+	if(r<0) r=0;
+	return randombytes_uniform(r);
+}
 
-	for(i=0;i<city_num;i++)
-	{
-		city_was_visited[i]=0;
-		city_indexes[i]=i;
-	}
-	offset = randombytes_uniform(city_num);
-	route[0] = offset+1;
-	city_was_visited[offset]=1;
-	mergeSort(city_was_visited,city_indexes,0,city_num-1);
-	for(i=1;i<city_num;i++)
-	{
-		offset = randombytes_uniform(city_num-i);
-		city_was_visited[offset]=1;
-		route[i]=city_indexes[offset]+1;
-		curLength += tsp[route[i-1]-1][route[i]-1];
-		mergeSort(city_was_visited,city_indexes,0,city_num-i-1);
-	}
+int* graspConstructionAlgorithm(float **tsp, int **tsp_idxs)
+{
+	// declarando variáveis
 
-	route[i] = route[0];
-	curLength += tsp[route[i-1]-1][route[i]-1];
+	float sum = 0;
+	int counter = 0;
+	int j = 0, i = 0;
+	int n_unvisited=city_num;
+	int *unvisited_tsp_idx_i=NULL;
+	float alpha = 1;
+	float min = (float)INT_MAX; // inicializando o mínimo como máximo
+	int* visitedRouteList = malloc(sizeof(int)*city_num);
 
-	// printRoute(route,"STOCASTIC ROUTE");
-	// printf("<p>STOCASTIC COST: %.2f\n", curLength);
-	free(city_indexes);
-	free(city_was_visited);
+	// inicializando vetor de rotas visitadas com zeros
+	for(i=0;i<city_num;i++){
+		visitedRouteList[i]=0;
+	}
+	// começando do(a) primeiro(a) índice/cidade, "0"
+	// declarando ele(a) como visitado(a)
+	visitedRouteList[0] = 1;
+	n_unvisited--;
+	int* route = malloc(city_num*sizeof(int)); // criando vetor para a rota (vetor "s")
+
+	// Percorrendo a matriz de adjacência
+	// matriz tsp[][]
+	i=0;
+	int l=0;
+	route[0]=1;
+	counter++;
+	while(n_unvisited>0)
+	{
+		unvisited_tsp_idx_i = listNonVisitedIdxs(tsp_idxs[i],visitedRouteList,n_unvisited);
+		j = grand(unvisited_tsp_idx_i,n_unvisited,alpha);
+		j = unvisited_tsp_idx_i[j];
+		sum+= tsp[i][j];
+		route[counter++] = j + 1;
+		visitedRouteList[j]=1;
+		n_unvisited--;
+		i = j;
+		free(unvisited_tsp_idx_i);
+	}
+	
+	// Adicionando a primeira cidade como sendo a última, e somando sua distância
+
+	sum += tsp[0][route[counter-1]-1];
+	route[counter]=1;
+
+	// Exibindo o custo calculado	
+	printRoute(route,"GREEDY ROUTE");
+	printf("<p>GREEDY COST: %.2f\n", sum);
+
+	free(visitedRouteList);
 	return route;
 }
 
@@ -281,6 +304,29 @@ void localSearch(int* route, float** tsp)
 	// printf("<p>LOCAL SEARCH COST: %.2f\n", curLength);
 	currentLength = curLength;
 }
+
+void initTspIdxs(int **tsp_idxs, float **tsp){
+	int i,j;
+	for(i=0;i<city_num;i++)
+	{
+		for(j=0;j<city_num;j++)
+		{
+			tsp_idxs[i][j]=j;
+		}
+		mergeSort(tsp[i],tsp_idxs[i],0,city_num-1);
+	}
+	// for(i=0;i<city_num;i++)
+	// {
+	// 	for(j=0;j<city_num;j++)
+	// 	{
+	// 		printf("%.0f ",tsp[i][tsp_idxs[i][j]]);
+	// 	}
+	// 	printf("\n");
+	// }
+	// printf("\n");
+	return;
+}
+
 int main()
 {
 	// OBS.: Este código foi preparado para receber instancias
@@ -297,7 +343,8 @@ int main()
     float x, y;
     float **coordinates = (float**)malloc(city_num * sizeof(float*));
     float **tsp = (float**)malloc(city_num * sizeof(float*));
-	if(coordinates==NULL||tsp==NULL)
+	int **tsp_idxs = (int**)malloc(city_num*sizeof(int*));
+	if(coordinates==NULL||tsp==NULL||tsp_idxs==NULL)
 	{
 		printf("ERRO: malloc com problema!\n");
 		return -1;
@@ -306,7 +353,8 @@ int main()
     {
         coordinates[i] = (float*) malloc(2 * sizeof(float));
         tsp[i] = (float*) malloc(city_num * sizeof(float));
-		if(coordinates[i]==NULL||tsp[i]==NULL)
+		tsp_idxs[i] = (int*) malloc(city_num*sizeof(int));
+		if(coordinates[i]==NULL||tsp[i]==NULL||tsp_idxs[i]==NULL)
 		{
 			printf("ERRO: malloc com problema!\n");
 			return -1;
@@ -322,6 +370,7 @@ int main()
 
 	// Populando a matriz de adjacência/distância
     calculateEuc2dDistances(coordinates, tsp);
+	initTspIdxs(tsp_idxs,tsp);
 
 	double total_time=0;
 	double total_length=0;
@@ -331,10 +380,9 @@ int main()
 	int* route;
 	for(i=0;i<100;i++)
 	{
-		printf("lol\n");
 		time_aux=0;
-		// Executando o algoritmo stocastico
-		route = (int*) stopwatch1arg(stocasticSearch,tsp);
+		// Executando o algoritmo grasp
+		route = (int*) stopwatch1arg(graspConstructionAlgorithm,tsp,tsp_idxs);
 		time_aux += (double)elapsed_time;
 		// Executando o algoritmo busca local
 		stopwatch2arg(localSearch, route, tsp);
@@ -349,9 +397,9 @@ int main()
 	float mean_time = (float)(total_time/100.0);
 	float mean_length = (float)(total_length/100.0);
 
-	printf("<p>STOCASTIC BEST COST: %.2f\n", best_length);
-	printf("<br>STOCASTIC MEAN COST: %.2f\n", mean_length);
-	printf("<br>STOCASTIC SEARCH MEAN ELAPSED TIME (s): %e\n",mean_time);
+	printf("<p>GRASP BEST COST: %.2f\n", best_length);
+	printf("<br>GRASP MEAN COST: %.2f\n", mean_length);
+	printf("<br>GRAP MEAN ELAPSED TIME (s): %e\n",mean_time);
 	printf("<br>TOTAL ELAPSED TIME (s): %e\n",total_time);
 
 	// Liberando a memória utilizada
@@ -359,10 +407,12 @@ int main()
     {
         free(coordinates[i]);
         free(tsp[i]);
+		free(tsp_idxs[i]);
     }
     free(coordinates);
     free(tsp);
 	free(route);
+	free(tsp_idxs);
 	
     return 0;
 

@@ -5,3 +5,6 @@ greedy0*.c
 tsp_output*
 stocastic
 local
+test.c
+test
+grasp
