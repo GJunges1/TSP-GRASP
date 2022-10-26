@@ -210,7 +210,7 @@ int countOnes(int* vetor)
 	return -1;
 }
 
-int grand(int *unvisited,int n_unvisited,float alpha)
+int grand(int n_unvisited,float alpha)
 {
 	int r = floor((float)n_unvisited*alpha);
 	if(r<0) r=0;
@@ -238,7 +238,7 @@ int* graspConstructionAlgorithm(float **tsp, int **tsp_idxs)
 	// declarando ele(a) como visitado(a)
 	visitedRouteList[0] = 1;
 	n_unvisited--;
-	int* route = malloc(city_num*sizeof(int)); // criando vetor para a rota (vetor "s")
+	int* route = malloc((city_num+1)*sizeof(int)); // criando vetor para a rota (vetor "s")
 
 	// Percorrendo a matriz de adjacência
 	// matriz tsp[][]
@@ -249,7 +249,7 @@ int* graspConstructionAlgorithm(float **tsp, int **tsp_idxs)
 	while(n_unvisited>0)
 	{
 		unvisited_tsp_idx_i = listNonVisitedIdxs(tsp_idxs[i],visitedRouteList,n_unvisited);
-		j = grand(unvisited_tsp_idx_i,n_unvisited,alpha);
+		j = grand(n_unvisited,alpha);
 		j = unvisited_tsp_idx_i[j];
 		sum+= tsp[i][j];
 		route[counter++] = j + 1;
@@ -265,8 +265,8 @@ int* graspConstructionAlgorithm(float **tsp, int **tsp_idxs)
 	route[counter]=1;
 
 	// Exibindo o custo calculado	
-	printRoute(route,"GREEDY ROUTE");
-	printf("<p>GREEDY COST: %.2f\n", sum);
+	// printRoute(route,"GREEDY ROUTE");
+	// printf("<p>GREEDY COST: %.2f\n", sum);
 
 	free(visitedRouteList);
 	return route;
@@ -314,7 +314,9 @@ void initTspIdxs(int **tsp_idxs, float **tsp){
 			tsp_idxs[i][j]=j;
 		}
 		mergeSort(tsp[i],tsp_idxs[i],0,city_num-1);
+		// printf("-");
 	}
+	// printf("\n");
 	// for(i=0;i<city_num;i++)
 	// {
 	// 	for(j=0;j<city_num;j++)
@@ -325,6 +327,49 @@ void initTspIdxs(int **tsp_idxs, float **tsp){
 	// }
 	// printf("\n");
 	return;
+}
+typedef struct GraspResults{
+	int *best_route;
+	float best_length;
+	float mean_length;
+	float mean_time;
+	// float best_time;
+}GraspResults;
+
+void initGraspResults(GraspResults *gr)
+{
+	gr->best_route=NULL;
+	gr->best_length=0.0;
+	gr->mean_length=0.0;
+	gr->mean_time=0.0;
+}
+
+GraspResults* grasp(float **tsp, int **tsp_idxs)
+{
+	int i, *route;
+	float one_time=0.0;
+	GraspResults *gr = malloc(sizeof(GraspResults));
+	initGraspResults(gr);
+
+	for(i=0;i<100;i++)
+	{
+		// Executando o algoritmo grasp
+		route = (int*) stopwatch1arg(graspConstructionAlgorithm,tsp,tsp_idxs);
+		gr->mean_time += elapsed_time;
+		// Executando o algoritmo busca local
+		stopwatch2arg(localSearch, route, tsp);
+		gr->mean_time += elapsed_time;
+		gr->mean_length += currentLength;
+		if(currentLength<gr->best_length || i==0)
+		{
+			gr->best_route=route;
+			gr->best_length = currentLength;
+			// gr->best_time = time_aux + elapsed_time;
+		}
+	}
+	gr->mean_time/=100;
+	gr->mean_length/=100;
+	return gr;
 }
 
 int main()
@@ -337,7 +382,6 @@ int main()
 	scanf("%*[^\n]\n%*[^\n]\n%*[^\n]\n"); // 			pulando três linhas...
 	scanf("%*[^0-9]%d",&city_num); //				*** LENDO O NÚMERO DE CIDADES ***
 	scanf("%*[^0-9]%*d%*[^0-9]"); // 					pulando três linhas...
-
 	// Inicializando variáveis
     int i, j;
     float x, y;
@@ -372,35 +416,13 @@ int main()
     calculateEuc2dDistances(coordinates, tsp);
 	initTspIdxs(tsp_idxs,tsp);
 
-	double total_time=0;
-	double total_length=0;
-	float best_length=(float)INT_MAX;
-	float best_time=0;
-	float time_aux=0;
-	int* route;
-	for(i=0;i<100;i++)
-	{
-		time_aux=0;
-		// Executando o algoritmo grasp
-		route = (int*) stopwatch1arg(graspConstructionAlgorithm,tsp,tsp_idxs);
-		time_aux += (double)elapsed_time;
-		// Executando o algoritmo busca local
-		stopwatch2arg(localSearch, route, tsp);
-		total_time += (double)time_aux + (double)elapsed_time;
-		total_length += (double)currentLength;
-		if(currentLength<best_length)
-		{
-			best_length = currentLength;
-			best_time = time_aux + elapsed_time;
-		}
-	}
-	float mean_time = (float)(total_time/100.0);
-	float mean_length = (float)(total_length/100.0);
+	GraspResults *gr = grasp(tsp,tsp_idxs);
+	
 
-	printf("<p>GRASP BEST COST: %.2f\n", best_length);
-	printf("<br>GRASP MEAN COST: %.2f\n", mean_length);
-	printf("<br>GRAP MEAN ELAPSED TIME (s): %e\n",mean_time);
-	printf("<br>TOTAL ELAPSED TIME (s): %e\n",total_time);
+	printf("<p>GRASP BEST COST: %.2f\n", gr->best_length);
+	printf("<br>GRASP MEAN COST: %.2f\n", gr->mean_length);
+	printf("<br>GRAP MEAN ELAPSED TIME (s): %e\n",gr->mean_time);
+	printf("<br>TOTAL ELAPSED TIME (s): %e\n",gr->mean_time*100);
 
 	// Liberando a memória utilizada
     for(i=0;i<city_num;i++)
@@ -411,9 +433,11 @@ int main()
     }
     free(coordinates);
     free(tsp);
-	free(route);
 	free(tsp_idxs);
-	
+	if(gr!=NULL)
+	{
+		free(gr);
+	}
     return 0;
 
 }
