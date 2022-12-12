@@ -13,8 +13,13 @@
 #include <time.h>
 #include <sodium/randombytes.h>
 
-int city_num=0;
+// parâmetro para o grasp
+static float ALPHA = 1.0;
+// número de iterações do grasp e da busca local + const. estocástica
+static int SEARCH_ITERATIONS = 100;
 
+// apenas inicialização do city_num, é sobrescrito depois
+int city_num=0; 
 
 int* listNonVisitedIdxs(int *tsp_idxs_i,int *visitedIdxs,int n_unvisited)
 {
@@ -210,9 +215,9 @@ int countOnes(int* vetor)
 	return -1;
 }
 
-int grand(int n_unvisited,float alpha)
+int grand(int n_unvisited)
 {
-	int r = floor((float)n_unvisited*alpha);
+	int r = floor((float)n_unvisited*ALPHA);
 	if(r<0) r=0;
 	return randombytes_uniform(r);
 }
@@ -226,7 +231,6 @@ int* graspConstructionAlgorithm(float **tsp, int **tsp_idxs)
 	int j = 0, i = 0;
 	int n_unvisited=city_num;
 	int *unvisited_tsp_idx_i=NULL;
-	float alpha = 1;
 	float min = (float)INT_MAX; // inicializando o mínimo como máximo
 	int* visitedRouteList = malloc(sizeof(int)*city_num);
 
@@ -249,7 +253,7 @@ int* graspConstructionAlgorithm(float **tsp, int **tsp_idxs)
 	while(n_unvisited>0)
 	{
 		unvisited_tsp_idx_i = listNonVisitedIdxs(tsp_idxs[i],visitedRouteList,n_unvisited);
-		j = grand(n_unvisited,alpha);
+		j = grand(n_unvisited);
 		j = unvisited_tsp_idx_i[j];
 		sum+= tsp[i][j];
 		route[counter++] = j + 1;
@@ -351,7 +355,7 @@ GraspResults* grasp(float **tsp, int **tsp_idxs)
 	GraspResults *gr = malloc(sizeof(GraspResults));
 	initGraspResults(gr);
 
-	for(i=0;i<100;i++)
+	for(i=0;i<SEARCH_ITERATIONS;i++)
 	{
 		// Executando o algoritmo grasp
 		route = (int*) stopwatch1arg(graspConstructionAlgorithm,tsp,tsp_idxs);
@@ -367,8 +371,8 @@ GraspResults* grasp(float **tsp, int **tsp_idxs)
 			// gr->best_time = time_aux + elapsed_time;
 		}
 	}
-	gr->mean_time/=100;
-	gr->mean_length/=100;
+	gr->mean_time/=SEARCH_ITERATIONS;
+	gr->mean_length/=SEARCH_ITERATIONS;
 	return gr;
 }
 
@@ -422,7 +426,7 @@ int main()
 	printf("<p>GRASP BEST COST: %.2f\n", gr->best_length);
 	printf("<br>GRASP MEAN COST: %.2f\n", gr->mean_length);
 	printf("<br>GRAP MEAN ELAPSED TIME (s): %e\n",gr->mean_time);
-	printf("<br>TOTAL ELAPSED TIME (s): %e\n",gr->mean_time*100);
+	printf("<br>TOTAL ELAPSED TIME (s): %e\n",gr->mean_time*SEARCH_ITERATIONS);
 
 	// Liberando a memória utilizada
     for(i=0;i<city_num;i++)
