@@ -1,8 +1,8 @@
 /**
- * TAREFA 1
+ * TAREFA 3
  * 
  * Problema: Caixeiro viajante simétrico (STSP)
- * Heurística: Método guloso
+ * Meta-heurística: GRASP
  * Aluno: Gabriel Junges Baratto
 */
 
@@ -13,14 +13,16 @@
 #include <time.h>
 #include <sodium/randombytes.h>
 
-// parâmetro para o grasp
+// *** Parâmetros *** //
 static float ALPHA = 1.0;
-// número de iterações do grasp e da busca local + const. estocástica
 static int SEARCH_ITERATIONS = 100;
 
-// apenas inicialização do city_num, é sobrescrito depois
+// obs.: o número de cidades é sobrescrito depois da inicialização
 int city_num=0; 
 
+/**
+ * @returns uma lista dos índices que não foram visitados
+*/
 int* listNonVisitedIdxs(int *tsp_idxs_i,int *visitedIdxs,int n_unvisited)
 {
 	int l=0;
@@ -149,7 +151,7 @@ void calculateEuc2dDistances(float **coordinates,float **tsp)
                                 coordinates[j][1]);
 }
 
-// Função que marca o tempo de execução de funções:
+// Funções que marcam o tempo de execução de funções:
 float elapsed_time=0;
 int* stopwatch1arg(int* (*function)(), void* arg1, void *arg2){
 	clock_t start, end;
@@ -193,6 +195,9 @@ void do2Opt(int* route, int i, int j)
 	reverse(route, i + 1, j + 1);
 }
 
+/***
+ * @returns o custo de uma rota já construída
+*/
 float pathLength(int* route, float** tsp)
 {
 	if(city_num<=1) return 0;
@@ -215,13 +220,22 @@ int countOnes(int* vetor)
 	return -1;
 }
 
+/**
+ * @param n_unvisited número de cidades ainda não visitadas
+ * @returns um índice sorteado dentre os índices da lista "cortada" pelo GRASP
+*/
 int grand(int n_unvisited)
 {
-	int r = floor((float)n_unvisited*ALPHA);
+	int r = floor((float) n_unvisited * ALPHA );
 	if(r<0) r=0;
 	return randombytes_uniform(r);
 }
 
+/**
+ * @param **tsp matriz de adjacências do tsp, contendo os pesos das arestas
+ * @param **tsp_idxs matriz com os índices da matriz de adjacências, de modo que possa-se ordenar aquela matriz por peso da aresta
+ * @returns uma rota construída pelo construtor do GRASP (que leva em conta o alpha)
+*/
 int* graspConstructionAlgorithm(float **tsp, int **tsp_idxs)
 {
 	// declarando variáveis
@@ -276,6 +290,9 @@ int* graspConstructionAlgorithm(float **tsp, int **tsp_idxs)
 	return route;
 }
 
+/**
+ * @brief recebe uma rota já construída e iterativamente melhora ela, até que não encontre mais melhorias
+*/
 void localSearch(int* route, float** tsp)
 {
 	// vector<Point> path = ...a vector of x,y points...; // The starting vertex is not included at the end
@@ -360,6 +377,7 @@ GraspResults* grasp(float **tsp, int **tsp_idxs)
 		// Executando o algoritmo grasp
 		route = (int*) stopwatch1arg(graspConstructionAlgorithm,tsp,tsp_idxs);
 		gr->mean_time += elapsed_time;
+		
 		// Executando o algoritmo busca local
 		stopwatch2arg(localSearch, route, tsp);
 		gr->mean_time += elapsed_time;
@@ -368,7 +386,6 @@ GraspResults* grasp(float **tsp, int **tsp_idxs)
 		{
 			gr->best_route=route;
 			gr->best_length = currentLength;
-			// gr->best_time = time_aux + elapsed_time;
 		}
 	}
 	gr->mean_time/=SEARCH_ITERATIONS;
